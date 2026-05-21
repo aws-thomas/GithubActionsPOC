@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="calculator" aria-label="Calculator">
+        <h1 class="title">Calculator</h1>
+
+        <input
+            id="display"
+            class="display"
+            type="text"
+            value="0"
+            readonly
+            aria-label="Calculator display">
+
+        <div class="buttons" role="group" aria-label="Calculator keys">
+            <button type="button" class="btn btn-action" data-key="clear">C</button>
+            <button type="button" class="btn btn-action" data-key="backspace">Back</button>
+            <button type="button" class="btn btn-op" data-key="divide">/</button>
+            <button type="button" class="btn btn-op" data-key="multiply">x</button>
+
+            <button type="button" class="btn btn-digit" data-key="7">7</button>
+            <button type="button" class="btn btn-digit" data-key="8">8</button>
+            <button type="button" class="btn btn-digit" data-key="9">9</button>
+            <button type="button" class="btn btn-op" data-key="subtract">-</button>
+
+            <button type="button" class="btn btn-digit" data-key="4">4</button>
+            <button type="button" class="btn btn-digit" data-key="5">5</button>
+            <button type="button" class="btn btn-digit" data-key="6">6</button>
+            <button type="button" class="btn btn-op" data-key="add">+</button>
+
+            <button type="button" class="btn btn-digit" data-key="1">1</button>
+            <button type="button" class="btn btn-digit" data-key="2">2</button>
+            <button type="button" class="btn btn-digit" data-key="3">3</button>
+            <button type="button" class="btn btn-equals" data-key="equals" rowspan="2">=</button>
+
+            <button type="button" class="btn btn-digit btn-zero" data-key="0">0</button>
+            <button type="button" class="btn btn-digit" data-key="decimal">.</button>
+        </div>
+
+        <p class="phase-note">
+            Phase 1: user interface only. Arithmetic is not wired up yet
+            (see phase2-todo.md).
+        </p>
+    </main>
+</body>
+</html>
