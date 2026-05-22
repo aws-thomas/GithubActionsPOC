@@ -15,11 +15,6 @@ It walks through the entire setup using a small Flask calculator app
 logic), pushing that change exercises the same pipeline on a real code
 change.
 
-Screenshot placeholders are written as HTML comments such as
-`<!-- SCREENSHOT: ... -->`. Wherever you see one, capture the screen
-described and replace the comment with `![caption](path/to/image.png)`.
-
----
 
 ## Prerequisites
 
@@ -119,6 +114,8 @@ updated through pull requests:
 4. Tick `Require a pull request before merging`.
 5. Save.
 
+***If your repo is set to private visibility, this branch protection settings will ONLY BE ENFORCED with PAID GITHUB SERVICE!!!
+
 <!-- SCREENSHOT: GitHub branch protection rule settings for `main`
 with "Require a pull request before merging" enabled. Caption:
 "Branch protection rule on `main`." -->
@@ -150,8 +147,22 @@ exclude =
     dist
 ```
 
+**exclude means flake8 will not scan them
+**extend-ignore means these error codes will be ignored 
+E203 Error: E203 whitespace before ':'
+W503
+
+Error W503: line break before binary operator
+Example:
+
+result = (
+    a
+    + b
+)
+
 The script that runs it (Windows):
 
+**These are local scripts
 ```powershell
 # scripts.ps1 (excerpt)
 function Invoke-Lint {
@@ -159,6 +170,7 @@ function Invoke-Lint {
 }
 ```
 
+**These are local scripts
 The script that runs it (Linux/macOS):
 
 ```bash
@@ -627,6 +639,129 @@ git push origin main
 <!-- SCREENSHOT: Actions tab showing both `validate` and `deploy` jobs
 green for the push to `main`. Caption: "First successful deploy run." -->
 
+### Deployment alternative: Render
+
+GitHub Pages can only host static files. That is fine for Phase 1 and
+for a Phase 2 that does arithmetic in client-side JavaScript. If Phase
+2 instead adds a server-side Flask endpoint (see `phase2-todo.md`,
+Option B), Pages cannot run it - you need a host that executes Python.
+Render is a good free option for both cases. This section shows both.
+
+Render has a free tier and does not require a credit card to start.
+Free web services sleep after inactivity and take a few seconds to
+wake on the next request - acceptable for a POC.
+
+There are two ways to wire Render to your repository. Pick one.
+
+#### Pattern A: Render auto-deploy (simplest)
+
+Render watches your GitHub repo directly and redeploys on every push
+to the branch you choose. No changes to `ci.yml` are needed. The
+trade-off: Render deploys independently of your CI result, so a push
+can deploy even if lint or tests would have failed. Fine for learning,
+not ideal for real projects.
+
+#### Pattern B: CI-gated deploy hook (recommended)
+
+Here GitHub Actions runs lint, test, and build first, and only then
+tells Render to deploy by calling a deploy hook. CI stays the gate.
+
+1. Create the Render service (see the two service types below).
+2. In the Render dashboard, open the service, go to
+   `Settings > Deploy Hook`, and copy the hook URL. It looks like
+   `https://api.render.com/deploy/srv-xxxx?key=yyyy`.
+3. In your GitHub repository, go to
+   `Settings > Secrets and variables > Actions > New repository
+   secret`. Name it `RENDER_DEPLOY_HOOK_URL` and paste the URL.
+4. Add a deploy job to `ci.yml` that runs after `validate`:
+
+```yaml
+deploy-render:
+  name: Deploy to Render
+  needs: validate
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  runs-on: ubuntu-latest
+  steps:
+    - name: Trigger Render deploy
+      run: curl -fsSL "$RENDER_DEPLOY_HOOK_URL"
+      env:
+        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+```
+
+The secret is never printed in logs because it is passed through an
+environment variable, not inlined into the command.
+
+<!-- SCREENSHOT: Render dashboard Settings page with the Deploy Hook
+URL visible (blur the key). Caption: "Render deploy hook URL." -->
+
+<!-- SCREENSHOT: GitHub repository Settings > Secrets and variables >
+Actions showing the RENDER_DEPLOY_HOOK_URL secret saved. Caption:
+"Deploy hook stored as a GitHub Actions secret." -->
+
+#### Render service type 1: Static Site (Phase 1 / client-side Phase 2)
+
+Deploys the frozen `build/` output - the same static files GitHub
+Pages would serve.
+
+1. In Render, click `New > Static Site` and connect your repository.
+2. Configure:
+   - Branch: `main`
+   - Build Command: `pip install -r requirements.txt && python freeze.py`
+   - Publish Directory: `build`
+3. Click `Create Static Site`.
+
+#### Render service type 2: Web Service (server-side Phase 2)
+
+Runs the live Flask app via a production WSGI server. This is what you
+use only if Phase 2 adds a Flask `/calculate` endpoint.
+
+1. Add `gunicorn` to `requirements.txt`:
+   ```
+   gunicorn==23.0.0
+   ```
+2. In Render, click `New > Web Service` and connect your repository.
+3. Configure:
+   - Branch: `main`
+   - Runtime: Python 3
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `gunicorn app:app`
+4. Click `Create Web Service`.
+
+#### Optional: render.yaml (infrastructure as code)
+
+Instead of clicking through the dashboard, commit a `render.yaml` to
+the repo root and use Render Blueprints. Static-site example:
+
+```yaml
+services:
+  - type: web
+    name: calculator-static
+    runtime: static
+    buildCommand: pip install -r requirements.txt && python freeze.py
+    staticPublishPath: build
+    branch: main
+```
+
+Web-service example (server-side Phase 2):
+
+```yaml
+services:
+  - type: web
+    name: calculator-app
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    branch: main
+```
+
+#### Choosing between Pages and Render
+
+- Staying static the whole way: GitHub Pages is the least setup.
+- Want CI to gate the deploy: use Render Pattern B (or a Pages flow
+  that, like this POC's, runs deploy only after `validate`).
+- Phase 2 needs server-side Flask: Render Web Service is required;
+  Pages cannot do it.
+
 ---
 
 ## 11. Validate Deployment
@@ -646,6 +781,11 @@ https://<your-username>.github.io/github-actions-poc/
 
 You can also find it under `Settings > Pages` after the first
 successful deploy.
+
+If you deployed to Render instead, the URL is shown at the top of the
+service page in the Render dashboard, in the form
+`https://<service-name>.onrender.com`. On a free web service, the
+first request after idle takes a few seconds to wake.
 
 <!-- SCREENSHOT: Deploy job summary card showing the live URL.
 Caption: "Live URL surfaced by the deploy job." -->
