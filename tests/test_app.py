@@ -39,3 +39,4 @@ def test_index_references_calculator_script(client):
     response = client.get("/")
     body = response.get_data(as_text=True)
     assert "calculator.js" in body
+    
