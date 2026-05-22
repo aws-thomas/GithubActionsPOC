@@ -33,3 +33,9 @@ def test_index_contains_operator_buttons(client):
     body = response.get_data(as_text=True)
     for op in ("add", "subtract", "multiply", "divide", "equals"):
         assert f'data-key="{op}"' in body
+
+
+def test_index_references_calculator_script(client):
+    response = client.get("/")
+    body = response.get_data(as_text=True)
+    assert "calculator.js" in body
