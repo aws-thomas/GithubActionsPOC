@@ -776,7 +776,7 @@ not a deploy. You must visit the actual URL.
 The deploy job's summary shows the published URL, for example:
 
 ```
-https://<your-username>.github.io/github-actions-poc/
+https://aws-thomas.github.io/GithubActionsPOC/
 ```
 
 You can also find it under `Settings > Pages` after the first
